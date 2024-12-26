@@ -1,0 +1,39 @@
+import folium
+from geopy.distance import great_circle
+
+# Список координат 
+points = [
+    (55.7558, 37.6173),  # Москва
+    (55.751244, 37.618423),  # Красная площадь
+    (55.7625, 37.6173),  # Пушкинская площадь
+    (55.751244, 37.6173)   # Третьяковская галерея
+]
+map_moscow = folium.Map(location=[55.7558, 37.6173], zoom_start=13)
+total_distance = 0
+for i in range(len(points) - 1):
+    start = points[i]
+    end = points[i + 1]
+    
+
+    distance = great_circle(start, end).kilometers
+    total_distance += distance
+    
+    
+    folium.PolyLine(locations=[start, end], color='blue').add_to(map_moscow)
+
+
+mid_index = len(points) // 2
+mid_point = points[mid_index]
+
+
+folium.Marker(
+    location=mid_point,
+    popup=f'Средняя точка\nДистанция: {total_distance:.2f} км',
+    icon=folium.Icon(color='green')
+).add_to(map_moscow)
+
+
+map_moscow.save("path_map.html")
+
+
+print(f"Общая длина пути: {total_distance:.2f} км")

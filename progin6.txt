@@ -1,0 +1,89 @@
+import folium
+import random
+import requests
+import os  # Для удаления файлов
+
+YANDEX_GEOCODE_API_KEY = "0d997e8f-b415-4fd0-91b1-c9547916c893"  # Замените на ваш реальный ключ API
+CITIES = [
+    "Москва", 
+    "Санкт-Петербург", 
+    "Казань", 
+    "Сочи", 
+    "Екатеринбург", 
+    "Новосибирск", 
+    "Владивосток", 
+    "Краснодар",
+    "Уфа",       
+    "Стерлитамак", 
+    "Ишимбай",     
+    "Нефтекамск"   
+]
+
+def fetch_city_coordinates(city_name):
+    """Получает координаты города через геокодер Яндекс."""
+    geocode_url = "https://geocode-maps.yandex.ru/1.x/"
+    geocode_params = {
+        "geocode": city_name,
+        "format": "json",
+        "apikey": YANDEX_GEOCODE_API_KEY
+    }
+
+    try:
+        response = requests.get(geocode_url, params=geocode_params)
+        response.raise_for_status()  # Проверка на ошибки HTTP
+        data = response.json()
+        point = data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
+        coordinates = tuple(map(float, point.split()))
+        return coordinates
+    except (KeyError, IndexError):
+        print(f"Ошибка: Не удалось получить координаты для города '{city_name}'. Пропускаю...")
+        return None
+    except requests.RequestException as e:
+        print(f"Ошибка при запросе геокодера: {e}. Пропускаю...")
+        return None
+
+def generate_city_map(coordinates, city_name):
+    """Создает карту города в формате HTML без названия и отображает ее."""
+    city_map = folium.Map(location=[coordinates[1], coordinates[0]], zoom_start=12, tiles='cartodbpositron')  # Добавлен стиль карты
+    folium.Marker(location=[coordinates[1], coordinates[0]], icon=folium.Icon(color='red')).add_to(city_map)
+    
+    # Сохраняем карту в HTML файл и открываем в браузере
+    temp_filename = f"{city_name}_map.html"
+    city_map.save(temp_filename)
+    
+    import webbrowser
+    webbrowser.open(os.path.abspath(temp_filename))
+    
+    return temp_filename  # Возвращаем имя временного файла для последующего удаления
+
+def play_guess_the_city():
+    """Запускает игру 'Угадай город'."""
+    random.shuffle(CITIES)  # Перемешиваем список городов для случайного порядка
+
+    for city in CITIES:
+        print("\n*************************************************")
+        print(f"Карта следующего города показывается. Попробуйте угадать!")
+        
+        coordinates = fetch_city_coordinates(city)
+        if not coordinates:
+            continue
+
+        temp_filename = generate_city_map(coordinates, city)
+
+        input("Нажмите Enter, чтобы ввести ваш ответ...")
+
+        user_guess = input("Ваш ответ: ").strip()
+        if user_guess.lower() == city.lower():
+            print("Отлично! Вы угадали!")
+        else:
+            print(f"Неверно! Это был город '{city}'.")
+            
+
+        # Удаляем временный HTML файл
+        os.remove(temp_filename)
+
+    print("\nИгра окончена. Спасибо за участие!")
+
+# Запуск игры
+if __name__ == "__main__":
+    play_guess_the_city()

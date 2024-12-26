@@ -1,0 +1,42 @@
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut
+
+def get_southernmost_city(cities):
+    geolocator = Nominatim(user_agent="southernmost_city_finder")
+    southernmost_city = None
+    southernmost_latitude = float('inf')  # Инициализация с бесконечностью
+
+    for city in cities:
+        try:
+            location = geolocator.geocode(city.strip())
+            if location:
+                print(f"Город: {city.strip()}, Широта: {location.latitude}, Долгота: {location.longitude}")
+                if location.latitude < southernmost_latitude:
+                    southernmost_latitude = location.latitude
+                    southernmost_city = city.strip()
+            else:
+                print(f"Не удалось найти координаты для города: {city.strip()}")
+        except GeocoderTimedOut:
+            print(f"Запрос на геокодирование для города '{city.strip()}' превысил время ожидания.")
+        except Exception as e:
+            print(f"Ошибка при получении координат для города '{city.strip()}': {e}")
+
+    return southernmost_city
+
+def main():
+    cities_input = input("Введите список городов через запятую: ")
+    cities = [city.strip() for city in cities_input.split(',')]  # Убираем пробелы
+    
+    if not cities:
+        print("Список городов пуст.")
+        return
+
+    southernmost_city = get_southernmost_city(cities)
+    
+    if southernmost_city:
+        print(f"Самый южный город: {southernmost_city}")
+    else:
+        print("Не удалось определить самый южный город.")
+
+if __name__ == "__main__":
+    main()

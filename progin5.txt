@@ -1,0 +1,63 @@
+import requests
+
+# Замените на ваши ключи API
+YANDEX_GEOCODING_API_KEY = "0d997e8f-b415-4fd0-91b1-c9547916c893"
+YANDEX_SEARCH_API_KEY = "6c058cdf-afa0-40e6-8d9f-740452796714"
+
+def find_nearest_pharmacy(address: str):
+    # Геокодирование адреса
+    geocode_url = "https://geocode-maps.yandex.ru/1.x/"
+    geocode_params = {
+        "geocode": address,
+        "format": "json",
+        "apikey": YANDEX_GEOCODING_API_KEY
+    }
+    
+    try:
+        response = requests.get(geocode_url, params=geocode_params)
+        response.raise_for_status()  # Проверка на ошибки HTTP
+        location_data = response.json()
+        
+        # Извлечение координат
+        point = location_data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
+        coords = tuple(map(float, point.split()))
+        print(f"Координаты адреса: {coords}")
+
+    except (KeyError, IndexError):
+        print("Не удалось найти координаты для данного адреса.")
+        return
+    except requests.RequestException as e:
+        print(f"Ошибка при запросе геокодирования: {e}")
+        return
+
+    # Поиск аптек
+    search_url = "https://search-maps.yandex.ru/v1/"
+    search_params = {
+        "apikey": YANDEX_SEARCH_API_KEY,
+        "text": "аптека",
+        "ll": f"{coords[0]},{coords[1]}",
+        "type": "biz",
+        "lang": "ru_RU",
+        "results": 5,
+    }
+
+    try:
+        search_response = requests.get(search_url, params=search_params)
+        search_response.raise_for_status()  # Проверка на ошибки HTTP
+        search_data = search_response.json()
+
+        if 'features' in search_data and search_data['features']:
+            pharmacy = search_data['features'][0]
+            pharmacy_name = pharmacy['properties']['CompanyMetaData']['name']
+            pharmacy_address = pharmacy['properties']['CompanyMetaData'].get('address', 'Адрес не указан')
+            print(f"Ближайшая аптека: {pharmacy_name}, адрес: {pharmacy_address}")
+        else:
+            print("Аптеки поблизости не найдены.")
+
+    except requests.RequestException as e:
+        print(f"Ошибка при запросе поиска аптек: {e}")
+
+# Вводим адрес вручную
+if __name__ == "__main__":
+    user_address = input("Введите адрес: ")
+    find_nearest_pharmacy(user_address)

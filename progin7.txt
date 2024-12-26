@@ -1,0 +1,49 @@
+import requests
+import json
+
+GEO_API_KEY = "0d997e8f-b415-4fd0-91b1-c9547916c893"
+
+def locate_district(place_address):
+    """
+    Определяет район по предоставленному адресу, используя API Яндекс.Геокодера.
+
+    Аргументы:
+        place_address (str): Адрес, для которого необходимо найти район.
+
+    Возвращает:
+        str или None: Название района или None, если не удалось определить.
+    """
+    api_url = "https://geocode-maps.yandex.ru/1.x/"
+    api_params = {
+        "geocode": place_address,
+        "format": "json",
+        "kind": "district",
+        "apikey": GEO_API_KEY,
+    }
+
+    try:
+        response = requests.get(api_url, params=api_params)
+        response.raise_for_status()
+        json_data = response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Ошибка запроса: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"Ошибка при разборе JSON: {e}")
+        return None
+
+    try:
+        area_name = json_data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['metaDataProperty']['GeocoderMetaData']['AddressDetails']['Country']['AdministrativeArea']['SubAdministrativeArea']['SubAdministrativeAreaName']
+        return area_name
+    except (KeyError, IndexError):
+        print("Не удалось найти район.")
+        return None
+
+def main_app():
+    user_address = input("Введите адрес (Например:Мингажева, Уфа): ")
+    found_district = locate_district(user_address)
+    if found_district:
+        print(f"Район: {found_district}")
+
+if __name__ == "__main__":
+    main_app()
